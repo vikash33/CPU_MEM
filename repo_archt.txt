@@ -1,0 +1,14 @@
+your-repo/
+│
+├── .github/
+│   └── workflows/
+│       └── monitor.yml          # GitHub Actions workflow
+│
+├── ansible/
+│   ├── inventory.ini            # List of your 5 VMs (As much you can define)
+│   └── run_check.yml            # Ansible playbook
+│
+├── scripts/
+│   └── check_usage.py           # Python script to check CPU/MEM
+│
+└── README.md                    # Optional documentation

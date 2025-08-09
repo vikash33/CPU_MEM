@@ -1,0 +1,17 @@
+- name: Monitor CPU and Memory
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Copy Python script
+      copy:
+        src: ../scripts/check_usage.py
+        dest: /tmp/check_usage.py
+        mode: '0755'
+
+    - name: Run Python script
+      command: python3 /tmp/check_usage.py
+      register: result
+
+    - name: Show result
+      debug:
+        var: result.stdout_lines
