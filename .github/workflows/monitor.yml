@@ -1,4 +1,4 @@
-- name: Monitor CPU and Memory
+-name: Monitor CPU and Memory
   hosts: all
   gather_facts: no
 
