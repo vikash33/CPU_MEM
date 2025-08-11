@@ -1,67 +1,30 @@
-name: Monitor VMs
+- name: Monitor CPU and Memory
+  hosts: all
+  gather_facts: no
 
-on:
-  workflow_dispatch:
-    inputs:
-      vm_list:
-        description: 'Comma-separated list of VM IPs or hostnames'
-        required: true
-        default: '192.168.1.101,192.168.1.102'
-      check_type:
-        description: 'What to check: cpu, mem, or both'
-        required: true
-        default: 'both'
+  tasks:
+    - name: Ensure pip is installed
+      package:
+        name: python3-pip
+        state: present
 
-jobs:
-  monitor:
-    runs-on: ubuntu-latest
+    - name: Install psutil with pip
+      pip:
+        name: psutil
+        executable: pip3
 
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - name: Copy monitoring script
+      copy:
+        src: ../scripts/check_usage.py
+        dest: /tmp/check_usage.py
+        mode: '0755'
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+    - name: Run the script
+      command: python3 /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
+      ignore_errors: false
 
-      - name: Install Ansible
-        run: |
-          python -m pip install --upgrade pip
-          pip install ansible
-
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          for ip in $(echo "${{ github.event.inputs.vm_list }}" | tr ',' '\n'); do
-            ssh-keyscan -H $ip >> ~/.ssh/known_hosts
-          done
-
-      - name: Ensure ansible directory exists
-        run: mkdir -p ansible
-
-      - name: Generate dynamic inventory
-        run: |
-          echo "[all]" > ansible/inventory.ini
-          for ip in $(echo "${{ github.event.inputs.vm_list }}" | tr ',' '\n'); do
-            echo "$ip ansible_host=$ip" >> ansible/inventory.ini
-          done
-          echo "[all:vars]" >> ansible/inventory.ini
-          echo "ansible_user=${{ secrets.SSH_USER }}" >> ansible/inventory.ini
-          echo "ansible_ssh_private_key_file=~/.ssh/id_rsa" >> ansible/inventory.ini
-
-      - name: Ensure results directory exists
-        run: mkdir -p ansible/results
-
-      - name: Run Ansible Playbook
-        run: |
-          cd ansible
-          ansible-playbook run_check.yml -i inventory.ini --extra-vars "check_type=${{ github.event.inputs.check_type }}"
-
-      - name: Upload VM Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: vm-monitor-results
-          path: ansible/results/
+    - name: Fetch report
+      fetch:
+        src: /tmp/usage_report.txt
+        dest: ../ansible/results/{{ inventory_hostname }}.txt
+        flat: yes
