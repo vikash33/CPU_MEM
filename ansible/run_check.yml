@@ -3,20 +3,14 @@
   gather_facts: no
 
   tasks:
-    - name: Create virtual environment
-      command: python3 -m venv /tmp/monitor_venv
-
-    - name: Install psutil in virtual environment
-      command: /tmp/monitor_venv/bin/pip install psutil
-
     - name: Copy monitoring script
       copy:
         src: ../scripts/check_usage.py
         dest: /tmp/check_usage.py
         mode: '0755'
 
-    - name: Run the script using virtualenv Python
-      command: /tmp/monitor_venv/bin/python /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
+    - name: Run the script
+      command: python3 /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
 
     - name: Fetch report
       fetch:
