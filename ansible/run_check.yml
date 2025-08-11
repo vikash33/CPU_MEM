@@ -1,17 +1,38 @@
 - name: Monitor CPU and Memory
   hosts: all
   gather_facts: no
+
   tasks:
-    - name: Copy Python script
+    - name: Download get-pip.py
+      get_url:
+        url: https://bootstrap.pypa.io/get-pip.py
+        dest: /tmp/get-pip.py
+
+    - name: Install pip for Python 3
+      command: python3 /tmp/get-pip.py --user
+      environment:
+        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
+
+    - name: Install psutil via pip
+      command: "{{ ansible_env.HOME }}/.local/bin/pip3 install --user psutil"
+      environment:
+        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
+
+    - name: Copy monitoring script
       copy:
         src: ../scripts/check_usage.py
         dest: /tmp/check_usage.py
         mode: '0755'
 
-    - name: Run Python script
-      command: python3 /tmp/check_usage.py
-      register: result
+    - name: Run the script
+      command: python3 /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
+      environment:
+        PYTHONPATH: "{{ ansible_env.HOME }}/.local/lib/python3.*/site-packages"
+        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
+      ignore_errors: false
 
-    - name: Show result
-      debug:
-        var: result.stdout_lines
+    - name: Fetch report
+      fetch:
+        src: /tmp/usage_report.txt
+        dest: ../ansible/results/{{ inventory_hostname }}.txt
+        flat: yes
