@@ -3,20 +3,11 @@
   gather_facts: no
 
   tasks:
-    - name: Download get-pip.py
-      get_url:
-        url: https://bootstrap.pypa.io/get-pip.py
-        dest: /tmp/get-pip.py
+    - name: Create virtual environment
+      command: python3 -m venv /tmp/monitor_venv
 
-    - name: Install pip for Python 3
-      command: python3 /tmp/get-pip.py --user
-      environment:
-        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
-
-    - name: Install psutil via pip
-      command: "{{ ansible_env.HOME }}/.local/bin/pip3 install --user psutil"
-      environment:
-        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
+    - name: Install psutil in virtual environment
+      command: /tmp/monitor_venv/bin/pip install psutil
 
     - name: Copy monitoring script
       copy:
@@ -24,12 +15,8 @@
         dest: /tmp/check_usage.py
         mode: '0755'
 
-    - name: Run the script
-      command: python3 /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
-      environment:
-        PYTHONPATH: "{{ ansible_env.HOME }}/.local/lib/python3.*/site-packages"
-        PATH: "{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}"
-      ignore_errors: false
+    - name: Run the script using virtualenv Python
+      command: /tmp/monitor_venv/bin/python /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
 
     - name: Fetch report
       fetch:
