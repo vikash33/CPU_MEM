@@ -9,11 +9,13 @@
         dest: /tmp/check_usage.py
         mode: '0755'
 
-    - name: Run the script
-      command: python3 /tmp/check_usage.py {{ check_type }} > /tmp/usage_report.txt
+    - name: Run the script and capture output
+      command: python3 /tmp/check_usage.py {{ check_type }}
+      register: result
+      ignore_errors: false
 
-    - name: Fetch report
-      fetch:
-        src: /tmp/usage_report.txt
-        dest: ../ansible/results/{{ inventory_hostname }}.txt
-        flat: yes
+    - name: Save output to local file (on GitHub runner)
+      copy:
+        content: "{{ result.stdout }}"
+        dest: "../ansible/results/{{ inventory_hostname }}.txt"
+      delegate_to: localhost
