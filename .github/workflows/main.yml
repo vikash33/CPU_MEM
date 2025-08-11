@@ -35,7 +35,6 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Add VM IPs to known_hosts to avoid SSH prompt
           for ip in $(echo "${{ github.event.inputs.vm_list }}" | tr ',' '\n'); do
             ssh-keyscan -H $ip >> ~/.ssh/known_hosts
           done
@@ -62,7 +61,7 @@ jobs:
           ansible-playbook run_check.yml -i inventory.ini --extra-vars "check_type=${{ github.event.inputs.check_type }}"
 
       - name: Upload VM Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vm-monitor-results
           path: ansible/results/
